@@ -31,8 +31,7 @@ const getNavigationItems = () => {
   
   const baseNavigation = [
     { name: 'Home', id: 'home' },
-    { name: 'Search', id: 'search' },
-    { name: 'About', id: 'about' }
+    { name: 'Search', id: 'search' }
   ];
 
   const userNavigation = [

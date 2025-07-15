@@ -5,8 +5,7 @@
   import SearchResults from './components/SearchResults';
   import DebugFilters from './components/DebugFilters';
   import Analytics from './components/Analytics';
-  import About from './components/About';
-  import Footer from './components/Footer';
+  import { Footer } from './components/Footer';
   import DataManagement from './components/DataManagement';
   import { supabase, CollegeData } from './lib/supabase';
   import WishlistPage from './components/WishlistPage';
@@ -29,7 +28,7 @@
     type: 'admin' | 'user';
   }
 
-  interface SmartSearchResult extends CollegeData {
+  export interface SmartSearchResult extends CollegeData {
     cutoffDifference: number;
     proximityScore: number;
     matchType: 'Perfect Match' | 'Very Close' | 'Good Option' | 'Consider This';
@@ -395,7 +394,6 @@
         search: 'Search Engineering Colleges - CollegeFinder',
         debug: 'Debug Filters - CollegeFinder',
         analytics: 'Engineering Education Analytics - CollegeFinder',
-        about: 'About CollegeFinder - Tamil Nadu Engineering Colleges',
         manage: 'Database Management - CollegeFinder'
       };
       document.title = titles[activeSection as keyof typeof titles] || titles.home;
@@ -479,8 +477,6 @@
           return <DebugFilters />;
         case 'analytics':
           return <Analytics />;
-        case 'about':
-          return <About />;
         case 'manage':
           return (
             <div className="min-h-screen bg-gray-50 py-8">
@@ -505,19 +501,18 @@
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-12">
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                      Real College Data at Your Fingertips
+                      Every student has a place—let’s discover yours!
                     </h2>
                     <p className="text-xl text-gray-600">
-                      Get instant, personalized college recommendations based on your cutoff marks
+                      Don’t worry if you feel average. Many students do! We’ll help you find the right fit. No need to be a topper—everyone has great options!
                     </p>
                   </div>
-                  
                   <div className="text-center">
                     <button
                       onClick={handleStartSearch}
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300"
                     >
-                      Start Searching Colleges
+                      See Where You Can Get In
                     </button>
                   </div>
                 </div>
@@ -525,6 +520,14 @@
             </div>
           );
       }
+    };
+
+    // Add handlers for Footer
+    const handleFooterInfoClick = (type: string) => {
+      alert(`Info: ${type}`);
+    };
+    const handleFooterFAQClick = () => {
+      alert('FAQ Clicked');
     };
 
     return (
@@ -540,7 +543,7 @@
         <main className="flex-1">
           {renderContent()}
         </main>
-        <Footer />
+        <Footer onInfoClick={handleFooterInfoClick} onFAQClick={handleFooterFAQClick} />
       </div>
     );
   }

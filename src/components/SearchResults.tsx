@@ -277,10 +277,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-1" />
                             <span className="text-sm font-medium">{result.district}</span>
+                           
                           </div>
                           <div className="flex items-center">
-                            <Building className="h-4 w-4 mr-1" />
-                            <span className="text-sm">{result.institute_type}</span>
+                            
+                            <span className="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-xs">College Code : {result.college_code}</span>
                           </div>
                           <div className="flex items-center">
                             <Zap className="h-4 w-4 mr-1 text-blue-600" />
@@ -389,9 +390,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
                     <div className="flex flex-wrap gap-2 mt-2">
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                        College Code: {result.college_code}
-                      </span>
-                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
                         Branch Code: {result.branch_code}
                       </span>
                       {result.quota && (
@@ -421,22 +419,21 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl p-6 border border-emerald-200">
         <h3 className="font-semibold text-emerald-800 mb-3 flex items-center">
           <Navigation className="h-5 w-5 mr-2" />
-          Location-Prioritized Algorithm Summary:
+          How We Help You Find Your Best Fit:
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-emerald-700">
           <div>
-            <h4 className="font-medium mb-2">🎯 Step 1-3: Filter & Prioritize</h4>
-            <p>Filter by course → category → separate by district preference</p>
+            <h4 className="font-medium mb-2">🎯 Step 1: Tell Us About You</h4>
+            <p>Just enter your marks, category, and preferences—no need to be a topper!</p>
           </div>
           <div>
-            <h4 className="font-medium mb-2">📊 Step 4: Sort by Proximity</h4>
-            <p>Within each location group, sort by cutoff closeness to your marks</p>
+            <h4 className="font-medium mb-2">📊 Step 2: See Your Options</h4>
+            <p>We’ll show you colleges where you have a great chance, sorted to make your choice easy.</p>
           </div>
         </div>
         <div className="mt-4 p-3 bg-white rounded-lg border border-emerald-200">
           <p className="text-emerald-800 text-sm">
-            <strong>💡 Result Order:</strong> Colleges from selected districts appear first (sorted by cutoff proximity), 
-            followed by colleges from other districts (also sorted by cutoff proximity).
+            <strong>💡 Your future is bright—let’s take the first step together!</strong>
           </p>
         </div>
       </div>

@@ -22,6 +22,8 @@ import { firestoreService } from '../services/firestore';
 import { SmartSearchResult } from '../App';
 import { useDrag, useDrop } from 'react-dnd';
 import { toast } from 'react-toastify';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface WishlistPageProps {
   wishlistItems: SmartSearchResult[];
@@ -351,8 +353,20 @@ const WishlistPage: React.FC<WishlistPageProps> = ({
     }
   };
 
-  const exportToPDF = () => {
-    toast.info('Export to PDF feature coming soon!');
+  const exportToPDF = async () => {
+    const table = document.querySelector('table');
+    if (!table) return;
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const scale = 2;
+    const canvas = await html2canvas(table, { scale });
+    const imgData = canvas.toDataURL('image/png');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pageWidth - 40;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 20, 20, pdfWidth, pdfHeight);
+    pdf.save('wishlist.pdf');
   };
 
   if (isLoading) {

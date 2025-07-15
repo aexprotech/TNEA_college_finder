@@ -47,3 +47,17 @@ export interface StudentProfile {
   preferredCourse: string;
   budget: number;
 }
+
+export interface CourseInsightsModel {
+  aboutCareer: string;
+  whatYouStudy: string[];
+  skillsYouDevelop: string[];
+  privateSectorJobs: string[];
+  governmentSectorJobs: string[];
+  marketAnalysis: string;
+  courseFee: string; // e.g., '₹75,000'
+  expectedSalary: string; // e.g., '₹6-10 LPA'
+  futureHigherStudies: string[];
+  currentMarketTrends: string;
+  disclaimer: string;
+}

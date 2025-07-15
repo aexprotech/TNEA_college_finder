@@ -1,98 +1,157 @@
 import React from 'react';
-import { GraduationCap, Mail, Phone, MapPin, Heart } from 'lucide-react';
+// import { Button } from "@/components/ui/button"; // Commented out as Button does not exist
 
-const Footer: React.FC = () => {
-  const currentYear = new Date().getFullYear();
+interface FooterProps {
+  onInfoClick: (type: string) => void;
+  onFAQClick: () => void;
+}
 
+// Temporary fallback for Button until implemented
+const Button: React.FC<any> = ({ children, ...props }) => (
+  <button {...props} className={props.className}>{children}</button>
+);
+
+export const Footer: React.FC<FooterProps> = ({ onInfoClick, onFAQClick }) => {
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-2 rounded-lg">
-                <GraduationCap className="h-6 w-6 text-white" />
-              </div>
+    <footer className="bg-gray-900 text-white py-8 mt-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
-                <h3 className="text-xl font-bold">CollegeFinder</h3>
-                <p className="text-gray-400 text-sm">Tamil Nadu Engineering Colleges</p>
-              </div>
-            </div>
-            <p className="text-gray-300 mb-4 max-w-md">
-              Empowering Tamil Nadu students to discover the perfect engineering college 
-              through comprehensive data, analytics, and personalized recommendations.
-            </p>
-            <div className="flex items-center text-gray-400">
-              <Heart className="h-4 w-4 mr-2 text-red-500" />
-              <span>Made for students, by students</span>
-            </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              <li><a href="#home" className="text-gray-300 hover:text-white transition-colors">Home</a></li>
-              <li><a href="#search" className="text-gray-300 hover:text-white transition-colors">Search Colleges</a></li>
-              <li><a href="#analytics" className="text-gray-300 hover:text-white transition-colors">Analytics</a></li>
-              <li><a href="#about" className="text-gray-300 hover:text-white transition-colors">About Us</a></li>
+            <h4 className="text-md font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('About Us')}
+                >
+                  About Us
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('How it Works')}
+                >
+                  How it Works
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('Contact')}
+                >
+                  Contact
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => window.open('#', '_blank')}
+                >
+                  Improvements & Updates
+                </Button>
+              </li>
             </ul>
           </div>
 
-          {/* Resources */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Resources</h4>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Admission Guide</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Cutoff Trends</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Placement Reports</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Scholarship Info</a></li>
+            <h4 className="text-md font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('Terms of Service')}
+                >
+                  Terms of Service
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('Privacy Policy')}
+                >
+                  Privacy Policy
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('Cookie Policy')}
+                >
+                  Cookie Policy
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => onInfoClick('Disclaimer')}
+                >
+                  Disclaimer
+                </Button>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-md font-semibold mb-4">Resources</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => window.open('https://www.tneaonline.org/', '_blank')}
+                >
+                  TNEA Official
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => window.open('https://psychometrics.ischs.in/career-library/all/?channel_id=MjMzNQ==', '_blank')}
+                >
+                  Career Library
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={() => window.open('https://psychometrics.ischs.in/aexpro', '_blank')}
+                >
+                  Career Guidance
+                </Button>
+              </li>
+              <li>
+                <Button 
+                  variant="link" 
+                  className="text-gray-300 hover:text-white p-0 h-auto"
+                  onClick={onFAQClick}
+                >
+                  FAQs
+                </Button>
+              </li>
             </ul>
           </div>
         </div>
 
-        {/* Contact Info */}
-        <div className="border-t border-gray-800 pt-8 mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="flex items-center space-x-3">
-              <Mail className="h-5 w-5 text-blue-400" />
-              <div>
-                <p className="text-sm text-gray-400">Email Us</p>
-                <p className="text-gray-300">support@collegefinder-tn.com</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Phone className="h-5 w-5 text-green-400" />
-              <div>
-                <p className="text-sm text-gray-400">Call Us</p>
-                <p className="text-gray-300">+91 98765 43210</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <MapPin className="h-5 w-5 text-orange-400" />
-              <div>
-                <p className="text-sm text-gray-400">Location</p>
-                <p className="text-gray-300">Chennai, Tamil Nadu</p>
-              </div>
-            </div>
+        <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="text-sm text-gray-400 mb-4 md:mb-0">
+            We believe every student deserves a chance to shine. Our team is here to guide you, every step of the way. Have questions? We’re always ready to help.
           </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">
-            © {currentYear} CollegeFinder. All rights reserved.
-          </p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Contact</a>
+          <div className="text-sm text-gray-400">
+            Powered by real student stories and data—your future is bright!
           </div>
         </div>
       </div>
     </footer>
   );
 };
-
-export default Footer;

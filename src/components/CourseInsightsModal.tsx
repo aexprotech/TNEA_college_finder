@@ -1,76 +1,435 @@
-import React from 'react';
-import { SmartSearchResult } from '../lib/supabase';
+import React, { useEffect, useState } from 'react';
+import { SmartSearchResult } from '../App';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { 
+  BookOpen, Briefcase, TrendingUp, DollarSign, Clock, 
+  Award, Target, Users, GraduationCap, AlertTriangle, X, Building 
+} from "lucide-react";
+
 
 interface CourseInsightsModalProps {
   college: SmartSearchResult;
   onClose: () => void;
 }
 
-const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onClose }) => {
-  const getMatchTypeInfo = (matchType: string) => {
-    switch (matchType) {
-      case 'Perfect Match':
-        return { color: 'bg-green-100 text-green-800 border-green-200' };
-      case 'Very Close':
-        return { color: 'bg-blue-100 text-blue-800 border-blue-200' };
-      case 'Good Option':
-        return { color: 'bg-purple-100 text-purple-800 border-purple-200' };
-      case 'Consider This':
-        return { color: 'bg-orange-100 text-orange-800 border-orange-200' };
-      default:
-        return { color: 'bg-gray-100 text-gray-800 border-gray-200' };
-    }
+const mapInsightToModel = (insight: any) => {
+  return {
+    aboutCareer: insight["Course Description"] || '',
+    whatYouStudy: insight["Fundamental Concepts"] || [],
+    skillsYouDevelop: [
+      ...(insight["Theoretical Skills"] || []),
+      ...(insight["Practical Applications"] ? [insight["Practical Applications"]] : [])
+    ],
+    jobs: insight["Job Positions"] || [],
+    marketAnalysis: [
+      insight["Fee Structure"] ? `Fee Structure: ${Object.values(insight["Fee Structure"]).join(', ')}` : '',
+      insight["Market Demand"] ? `Market Demand: ${insight["Market Demand"]}` : '',
+      insight["Salary"] ? `Salary: ${Object.entries(insight["Salary"]).map(([k,v]) => `${k}: ${v}`).join(', ')}` : ''
+    ].filter(Boolean).join(' | '),
+    courseFee: insight["Fee Structure"] ? Object.values(insight["Fee Structure"]).join(', ') : '',
+    expectedSalary: insight["Salary"] ? Object.entries(insight["Salary"]).map(([k,v]) => `${k}: ${v}`).join(', ') : '',
+    currentMarketTrends: insight["Industry Trends"] ? insight["Industry Trends"].join(', ') : '',
+    disclaimer: 'This information is provided for guidance only. Data may change. Please verify with official sources.'
   };
+};
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
-        >
-          &times;
-        </button>
-        <div className="p-6">
-          <div className="mb-4">
-            <h3 className="text-2xl font-bold text-gray-900">
-              {college.branch_name}
-            </h3>
-            <p className="text-gray-600">
-              at {college.college_name} ({college.district})
+const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onClose }) => {
+  const [insight, setInsight] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      try {
+        setLoading(true);
+        const module = await import('../data/courseInsights.json');
+        const data = module.default || module;
+        // Improved normalization: remove all special characters (including spaces), lowercase
+        const normalize = (str: string) => {
+          return (str || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/gi, ''); // Remove all non-alphanumeric chars
+        };
+        const courseName = normalize(college.branch_name || '');
+        // Debug logging
+        // console.log('Searching for:', courseName);
+        // console.log('Available keys:', Object.keys(data));
+        // Find the key that contains or is contained within the branch name
+        const foundKey = Object.keys(data).find(key => {
+          const normalizedKey = normalize(key);
+          return normalizedKey === courseName;
+        });
+        // console.log('Found match:', foundKey);
+        setInsight(foundKey ? data[foundKey as keyof typeof data] : null);
+      } catch (error) {
+        // console.error('Error loading insights:', error);
+        setInsight(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInsights();
+  }, [college.branch_name]);
+
+  if (loading) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent>
+          <div className="flex justify-center items-center p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (!insight) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>No Insights Available</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p>No detailed insights found for {college.branch_name}.</p>
+            <p className="text-sm text-gray-500 mt-2">
+              We're working to add more course information. Check back later!
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Cutoff Analysis */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
-                <span className="mr-2">📊</span>
-                Cutoff Analysis
-              </h4>
-              <div className="space-y-2">
-                <p><span className="font-medium">Current Year:</span> {college.year}</p>
-                <p><span className="font-medium">Cutoff Mark:</span> {college.cutoff_mark}</p>
-                <p>
-                  <span className="font-medium">Your Difference:</span> 
-                  <span className={college.cutoffDifference <= 5 ? 'text-green-600' : 'text-orange-600'}>
-                    {college.cutoffDifference > 0 ? '+' : ''}{college.cutoffDifference.toFixed(1)}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Match Type:</span> 
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${getMatchTypeInfo(college.matchType).color}`}>
-                    {college.matchType}
-                  </span>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const getMetrics = (insight: any) => {
+    const metrics: any = {};
+    
+    if (insight?.["Fee Structure"]) {
+      const fees = Object.values(insight["Fee Structure"]).map((f: any) => {
+        if (typeof f === 'string') {
+          const match = f.replace(/,/g, '').match(/\d+/g);
+          return match ? parseInt(match[0], 10) : 0;
+        }
+        return 0;
+      });
+      const avgFee = fees.length ? fees.reduce((a, b) => a + b, 0) / fees.length : 0;
+      metrics.fee = { 
+        value: Math.min(Math.round((avgFee / 1000000) * 100), 100), 
+        level: avgFee > 200000 ? 'High' : avgFee > 100000 ? 'Medium' : 'Low' 
+      };
+    }
+
+    if (insight?.["Market Demand"]) {
+      const demandStr = insight["Market Demand"];
+      let value = 70, level = 'Medium';
+      if (/very high|extremely high|high/i.test(demandStr)) { value = 90; level = 'High'; }
+      else if (/moderate/i.test(demandStr)) { value = 70; level = 'Medium'; }
+      else if (/low/i.test(demandStr)) { value = 50; level = 'Low'; }
+      metrics.demand = { value, level };
+    }
+
+    if (insight?.["Salary"]?.Entry) {
+      const entry = insight["Salary"].Entry;
+      const match = entry.match(/\d+/g);
+      let value = 70, level = 'Medium';
+      if (match && match[0]) {
+        const salary = parseInt(match[0], 10);
+        value = Math.min(Math.round((salary / 12) * 10), 100);
+        level = salary > 10 ? 'High' : salary > 6 ? 'Medium' : 'Low';
+      }
+      metrics.salary = { value, level };
+    }
+
+    if (insight?.["Course Complexity"]) {
+      const comp = parseFloat(insight["Course Complexity"].replace(/[^\d.]/g, ''));
+      if (!isNaN(comp)) {
+        metrics.preparation = { 
+          value: Math.round(comp * 10), 
+          level: comp > 8 ? 'High' : comp > 6 ? 'Medium' : 'Low' 
+        };
+      }
+    }
+    return metrics;
+  };
+
+  const getMetricColor = (metric: string, level: string) => {
+    const colors = {
+      fee: {
+        High: 'bg-red-100 text-red-800',
+        Medium: 'bg-yellow-100 text-yellow-800',
+        Low: 'bg-green-100 text-green-800'
+      },
+      default: {
+        High: 'bg-green-100 text-green-800',
+        Medium: 'bg-yellow-100 text-yellow-800',
+        Low: 'bg-red-100 text-red-800'
+      }
+    };
+    return metric === 'fee' 
+      ? colors.fee[level as keyof typeof colors.fee] 
+      : colors.default[level as keyof typeof colors.default];
+  };
+
+  const model = mapInsightToModel(insight);
+  const metrics = getMetrics(insight);
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg">
+        {/* Header with gradient background */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-700 p-6 pb-4 text-white">
+          <DialogHeader className="flex-row justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-2 rounded-full">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">
+                  {college.branch_name || 'Course Insights'}
+                </DialogTitle>
+                <p className="text-sm opacity-90">{college.college_name}</p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="rounded-full p-1 hover:bg-white/20 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </DialogHeader>
+        </div>
+
+        <div className="p-6 space-y-8">
+          {/* About Career - should come first */}
+          <section className="bg-blue-50/50 rounded-xl p-5 border border-blue-100">
+            <h3 className="text-xl font-bold mb-3 flex items-center">
+              <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
+              About This Career
+            </h3>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{model.aboutCareer}</p>
+          </section>
+
+          {/* Curriculum and Skills */}
+          <section className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center">
+                  <Target className="h-5 w-5 mr-2 text-indigo-600" />
+                  What You'll Study
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 list-disc list-inside">
+                  {(model.whatYouStudy || []).map((item: any, idx: number) => (
+                    <li key={idx} className="text-gray-800 pl-2">{item}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-emerald-600" />
+                  Skills You'll Develop
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {(model.skillsYouDevelop || []).map((item: any, idx: number) => (
+                    <Badge key={idx}>{item}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Key Metrics Cards */}
+          {metrics && (
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border border-blue-100">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="h-4 w-4 text-blue-600" />
+                    <CardTitle className="text-sm font-medium">Course Fee</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-end justify-between">
+                    <span className="text-lg font-bold text-blue-600">
+                      {metrics.fee.level}
+                    </span>
+                    <div className="w-full">
+                      <Progress value={metrics.fee.value} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-green-100">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <CardTitle className="text-sm font-medium">Market Demand</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-end justify-between">
+                    <span className="text-lg font-bold text-green-600">
+                      {metrics.demand.level}
+                    </span>
+                    <div className="w-full">
+                      <Progress value={metrics.demand.value} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-purple-100">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <Briefcase className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-sm font-medium">Salary Potential</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-end justify-between">
+                    <span className="text-lg font-bold text-purple-600">
+                      {metrics.salary.level}
+                    </span>
+                    <div className="w-full">
+                      <Progress value={metrics.salary.value} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-orange-100">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <GraduationCap className="h-4 w-4 text-orange-600" />
+                    <CardTitle className="text-sm font-medium">Preparation Level</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-end justify-between">
+                    <span className="text-lg font-bold text-orange-600">
+                      {metrics.preparation.level}
+                    </span>
+                    <div className="w-full">
+                      <Progress value={metrics.preparation.value} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Career Opportunities */}
+          <section>
+            <h3 className="text-xl font-bold mb-4 flex items-center">
+              <Briefcase className="h-5 w-5 mr-2 text-amber-600" />
+              Career Opportunities
+            </h3>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-blue-600">
+                  <Users className="h-5 w-5 mr-2" />
+                  Job Roles
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 list-disc list-inside">
+                  {(model.jobs || []).length ? (model.jobs || []).map((item: any, idx: number) => (
+                    <li key={idx} className="text-gray-800 pl-2">{item}</li>
+                  )) : (
+                    <li className="text-gray-500">No major job roles listed</li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Market Insights */}
+          <section className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-purple-600">
+                  <DollarSign className="h-5 w-5 mr-2" />
+                  Fee Structure
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {insight["Fee Structure"] && typeof insight["Fee Structure"] === 'object' ? (
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(insight["Fee Structure"]).map(([type, value]: [string, any], idx) => (
+                      <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-700">{model.courseFee || 'Not available'}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-amber-600">
+                  <TrendingUp className="h-5 w-5 mr-2" />
+                  Salary Expectations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {insight["Salary"] && typeof insight["Salary"] === 'object' ? (
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(insight["Salary"]).map(([type, value]: [string, any], idx) => (
+                      <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-700">{model.expectedSalary || 'Not available'}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-rose-600">
+                  <Clock className="h-5 w-5 mr-2" />
+                  Market Trends
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Array.isArray(insight["Industry Trends"]) ? (
+                  <ul className="list-disc list-inside space-y-1">
+                    {insight["Industry Trends"].map((trend: string, idx: number) => (
+                      <li key={idx} className="text-gray-800 pl-2">{trend}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-700">{model.currentMarketTrends || 'Not available'}</p>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Disclaimer */}
+          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-lg p-4">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-amber-800 mb-1">Important Disclaimer</h4>
+                <p className="text-sm text-amber-700">
+                  {model.disclaimer}
                 </p>
               </div>
             </div>
-            
-            {/* Rest of your modal sections... */}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

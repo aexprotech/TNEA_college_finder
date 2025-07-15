@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Filter, RotateCcw, AlertCircle, CheckCircle, Database, Bug, Brain, TestTube, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChevronDown } from 'lucide-react';
@@ -155,6 +155,30 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       district.toLowerCase().includes(districtSearch.toLowerCase())
     );
   }, [districtSearch]);
+
+  const courseDropdownRef = useRef<HTMLDivElement>(null);
+  const districtDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        showCourseDropdown && courseDropdownRef.current &&
+        !courseDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowCourseDropdown(false);
+      }
+      if (
+        showDistrictDropdown && districtDropdownRef.current &&
+        !districtDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDistrictDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCourseDropdown, showDistrictDropdown]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -493,7 +517,7 @@ const fetchRecordsWithCourse = async () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mt-4">
         {/* Second row: Courses and Districts */}
-        <div className="relative">
+        <div className="relative" ref={courseDropdownRef}>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Preferred Courses <span className="text-xs text-gray-500">({PREDEFINED_COURSES.length} options)</span>
           </label>
@@ -565,7 +589,7 @@ const fetchRecordsWithCourse = async () => {
         </div>
 
         {/* District Multi-Select with Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={districtDropdownRef}>
           <label className="block text-sm font-medium text-gray-700 mb-2">
              Preferred Districts <span className="text-xs text-gray-500">({PREDEFINED_DISTRICTS.length} options)</span>
           </label>
@@ -644,7 +668,7 @@ const fetchRecordsWithCourse = async () => {
           className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center space-x-2"
         >
           <Search className="h-5 w-5" />
-          <span>Search (Main Function)</span>
+          <span>Find the Best College for You</span>
         </button>
         <button
           onClick={onReset}
@@ -662,18 +686,9 @@ const fetchRecordsWithCourse = async () => {
           </button>
         )}
       </div>
-
       <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-gray-800 text-sm">
-          <strong>🔍 Current Selection:</strong> 
-          Cutoff: {filters.cutoff || 'Not set'} | 
-          Category: "{filters.category || 'Not selected'}" | 
-          Courses: {(filters.courses?.length || 0) > 0 
-            ? filters.courses?.slice(0, 3).join(', ') + ((filters.courses?.length || 0) > 3 ? ` +${(filters.courses?.length || 0) - 3} more` : '') 
-            : 'None selected'} | 
-          Districts: {(filters.locations?.length || 0) > 0 
-            ? filters.locations?.slice(0, 3).join(', ') + ((filters.locations?.length || 0) > 3 ? ` +${(filters.locations?.length || 0) - 3} more` : '') 
-            : 'None selected'}
+          <strong>✨ Just enter your marks and see which colleges you can get into.</strong> No need to be a topper—everyone has great options! We use real data to help you make smart choices, easily. Your future is bright—let’s take the first step together.
         </p>
       </div>
 
