@@ -145,8 +145,9 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
     if (insight?.["Course Complexity"]) {
       const comp = parseFloat(insight["Course Complexity"].replace(/[^\d.]/g, ''));
       if (!isNaN(comp)) {
+        const prepValue = Math.min(Math.round(comp * 10), 100);
         metrics.preparation = { 
-          value: Math.round(comp * 10), 
+          value: prepValue, 
           level: comp > 8 ? 'High' : comp > 6 ? 'Medium' : 'Low' 
         };
       }
