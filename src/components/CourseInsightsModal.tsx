@@ -106,21 +106,6 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
   const getMetrics = (insight: any) => {
     const metrics: any = {};
     
-    if (insight?.["Fee Structure"]) {
-      const fees = Object.values(insight["Fee Structure"]).map((f: any) => {
-        if (typeof f === 'string') {
-          const match = f.replace(/,/g, '').match(/\d+/g);
-          return match ? parseInt(match[0], 10) : 0;
-        }
-        return 0;
-      });
-      const avgFee = fees.length ? fees.reduce((a, b) => a + b, 0) / fees.length : 0;
-      metrics.fee = { 
-        value: Math.min(Math.round((avgFee / 1000000) * 100), 100), 
-        level: avgFee > 200000 ? 'High' : avgFee > 100000 ? 'Medium' : 'Low' 
-      };
-    }
-
     if (insight?.["Market Demand"]) {
       const demandStr = insight["Market Demand"];
       let value = 70, level = 'Medium';
@@ -235,22 +220,7 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
                 <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
                 Key Metrics
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="border border-blue-100">
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-blue-600" />
-                      <CardTitle className="text-sm font-medium">Course Fee</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="flex items-end justify-between">
-                      <span className="text-lg font-bold text-blue-600">{metrics.fee.level}</span>
-                      <Progress value={metrics.fee.value} className="w-1/2"/>
-                    </div>
-                  </CardContent>
-                </Card>
-
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card className="border border-green-100">
                   <CardHeader className="p-4 pb-2">
                     <div className="flex items-center space-x-2">
