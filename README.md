@@ -1,1 +1,1 @@
-# TNEA_college_finder
+# TNEA_college_predictor

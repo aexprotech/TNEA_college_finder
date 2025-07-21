@@ -97,7 +97,7 @@ const handleLogin = (type: 'admin' | 'user') => {
               <GraduationCap className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">CollegeFinder</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Tnea College Predictor</h1>
               <p className="text-sm text-gray-600">Tamil Nadu Engineering Colleges</p>
             </div>
           </div>
