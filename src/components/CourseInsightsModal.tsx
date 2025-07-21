@@ -132,14 +132,29 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
 
     if (insight?.["Salary"]?.Entry) {
       const entry = insight["Salary"].Entry;
-      const match = entry.match(/\d+/g);
-      let value = 70, level = 'Medium';
-      if (match && match[0]) {
-        const salary = parseInt(match[0], 10);
-        value = Math.min(Math.round((salary / 12) * 10), 100);
-        level = salary > 10 ? 'High' : salary > 6 ? 'Medium' : 'Low';
+      const matches = entry.match(/\d+\.?\d*/g);
+      let value = 50, level = 'Medium'; // Default values
+
+      if (matches && matches.length > 0) {
+        const lowEndSalary = parseFloat(matches[0]);
+        const highEndSalary = matches.length > 1 ? parseFloat(matches[matches.length - 1]) : lowEndSalary;
+        
+        if (highEndSalary <= 5) {
+          level = 'Low';
+        } else if (highEndSalary <= 8) {
+          level = 'Medium';
+        } else {
+          level = 'High';
+        }
+
+        const averageSalary = (lowEndSalary + highEndSalary) / 2;
+        // Scale salary to a 0-100 value for the progress bar.
+        // Assuming a max entry-level salary of around 15 LPA for scaling.
+        const maxSalary = 15;
+        value = Math.min(Math.round((averageSalary / maxSalary) * 100), 100);
+        
+        metrics.salary = { value, level };
       }
-      metrics.salary = { value, level };
     }
 
     if (insight?.["Course Complexity"]) {
@@ -177,165 +192,161 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg">
-        {/* Header with gradient background */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-700 p-6 pb-4 text-white">
-          <DialogHeader className="flex-row justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-2 rounded-full">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 m-0 rounded-lg">
+        {/* Header with gradient background restored */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-700 py-4 px-6 text-white">
+          <DialogHeader className="flex-row items-center">
+            <div className="flex items-center gap-4 w-full">
+              <div className="bg-white/20 p-3 rounded-full">
                 <BookOpen className="h-6 w-6" />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold">
+              <div className="text-left w-full">
+                <DialogTitle className="text-2xl font-bold text-left w-full">
                   {college.branch_name || 'Course Insights'}
                 </DialogTitle>
-                <p className="text-sm opacity-90">{college.college_name}</p>
+                <p className="text-sm opacity-90 text-left w-full">{college.college_name}</p>
               </div>
             </div>
-            <button 
-              onClick={onClose}
-              className="rounded-full p-1 hover:bg-white/20 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </DialogHeader>
         </div>
+        {/* Close button at top-right corner of modal */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 rounded-full p-1 bg-white/20 hover:bg-white/30 transition-colors"
+          title="Close"
+        >
+          <X className="h-5 w-5 text-white" />
+        </button>
 
-        <div className="p-6 space-y-8">
+        <div className="p-6 space-y-6 overflow-y-auto">
           {/* About Career - should come first */}
-          <section className="bg-blue-50/50 rounded-xl p-5 border border-blue-100">
-            <h3 className="text-xl font-bold mb-3 flex items-center">
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
               <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
               About This Career
             </h3>
             <p className="text-gray-700 leading-relaxed whitespace-pre-line">{model.aboutCareer}</p>
           </section>
 
-          {/* Curriculum and Skills */}
-          <section className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center">
-                  <Target className="h-5 w-5 mr-2 text-indigo-600" />
-                  What You'll Study
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 list-disc list-inside">
-                  {(model.whatYouStudy || []).map((item: any, idx: number) => (
-                    <li key={idx} className="text-gray-800 pl-2">{item}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2 text-emerald-600" />
-                  Skills You'll Develop
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(model.skillsYouDevelop || []).map((item: any, idx: number) => (
-                    <Badge key={idx}>{item}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
           {/* Key Metrics Cards */}
           {metrics && (
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="border border-blue-100">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="h-4 w-4 text-blue-600" />
-                    <CardTitle className="text-sm font-medium">Course Fee</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-end justify-between">
-                    <span className="text-lg font-bold text-blue-600">
-                      {metrics.fee.level}
-                    </span>
-                    <div className="w-full">
-                      <Progress value={metrics.fee.value} />
+            <section>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                Key Metrics
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border border-blue-100">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="h-4 w-4 text-blue-600" />
+                      <CardTitle className="text-sm font-medium">Course Fee</CardTitle>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold text-blue-600">{metrics.fee.level}</span>
+                      <Progress value={metrics.fee.value} className="w-1/2"/>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="border border-green-100">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <CardTitle className="text-sm font-medium">Market Demand</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-end justify-between">
-                    <span className="text-lg font-bold text-green-600">
-                      {metrics.demand.level}
-                    </span>
-                    <div className="w-full">
-                      <Progress value={metrics.demand.value} />
+                <Card className="border border-green-100">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <CardTitle className="text-sm font-medium">Market Demand</CardTitle>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold text-green-600">{metrics.demand.level}</span>
+                      <Progress value={metrics.demand.value} className="w-1/2"/>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="border border-purple-100">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <Briefcase className="h-4 w-4 text-purple-600" />
-                    <CardTitle className="text-sm font-medium">Salary Potential</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-end justify-between">
-                    <span className="text-lg font-bold text-purple-600">
-                      {metrics.salary.level}
-                    </span>
-                    <div className="w-full">
-                      <Progress value={metrics.salary.value} />
+                <Card className="border border-purple-100">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <Briefcase className="h-4 w-4 text-purple-600" />
+                      <CardTitle className="text-sm font-medium">Salary Potential</CardTitle>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold text-purple-600">{metrics.salary.level}</span>
+                      <Progress value={metrics.salary.value} className="w-1/2"/>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="border border-orange-100">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <GraduationCap className="h-4 w-4 text-orange-600" />
-                    <CardTitle className="text-sm font-medium">Preparation Level</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-end justify-between">
-                    <span className="text-lg font-bold text-orange-600">
-                      {metrics.preparation.level}
-                    </span>
-                    <div className="w-full">
-                      <Progress value={metrics.preparation.value} />
+                <Card className="border border-orange-100">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <GraduationCap className="h-4 w-4 text-orange-600" />
+                      <CardTitle className="text-sm font-medium">Preparation Level</CardTitle>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold text-orange-600">{metrics.preparation.level}</span>
+                      <Progress value={metrics.preparation.value} className="w-1/2"/>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </section>
           )}
 
+          {/* Curriculum and Skills */}
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+              <Target className="h-5 w-5 mr-2 text-indigo-600" />
+              Curriculum & Skills
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    What You'll Study
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 list-disc list-inside">
+                    {(model.whatYouStudy || []).map((item: any, idx: number) => (
+                      <li key={idx} className="text-gray-800 pl-2">{item}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    Skills You'll Develop
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {(model.skillsYouDevelop || []).map((item: any, idx: number) => (
+                      <Badge key={idx} variant="secondary">{item}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
           {/* Career Opportunities */}
           <section>
-            <h3 className="text-xl font-bold mb-4 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
               <Briefcase className="h-5 w-5 mr-2 text-amber-600" />
               Career Opportunities
             </h3>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-blue-600">
+                <CardTitle className="text-base font-medium flex items-center">
                   <Users className="h-5 w-5 mr-2" />
                   Job Roles
                 </CardTitle>
@@ -353,66 +364,69 @@ const CourseInsightsModal: React.FC<CourseInsightsModalProps> = ({ college, onCl
           </section>
 
           {/* Market Insights */}
-          <section className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-purple-600">
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  Fee Structure
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insight["Fee Structure"] && typeof insight["Fee Structure"] === 'object' ? (
-                  <ul className="list-disc list-inside space-y-1">
-                    {Object.entries(insight["Fee Structure"]).map(([type, value]: [string, any], idx) => (
-                      <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-700">{model.courseFee || 'Not available'}</p>
-                )}
-              </CardContent>
-            </Card>
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-purple-600" />
+              Market & Financials
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    Fee Structure
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {insight["Fee Structure"] && typeof insight["Fee Structure"] === 'object' ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {Object.entries(insight["Fee Structure"]).map(([type, value]: [string, any], idx) => (
+                        <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-700">{model.courseFee || 'Not available'}</p>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-amber-600">
-                  <TrendingUp className="h-5 w-5 mr-2" />
-                  Salary Expectations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insight["Salary"] && typeof insight["Salary"] === 'object' ? (
-                  <ul className="list-disc list-inside space-y-1">
-                    {Object.entries(insight["Salary"]).map(([type, value]: [string, any], idx) => (
-                      <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-700">{model.expectedSalary || 'Not available'}</p>
-                )}
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    Salary Expectations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {insight["Salary"] && typeof insight["Salary"] === 'object' ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {Object.entries(insight["Salary"]).map(([type, value]: [string, any], idx) => (
+                        <li key={idx} className="text-gray-800 pl-2">{type}: {value}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-700">{model.expectedSalary || 'Not available'}</p>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-rose-600">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Market Trends
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Array.isArray(insight["Industry Trends"]) ? (
-                  <ul className="list-disc list-inside space-y-1">
-                    {insight["Industry Trends"].map((trend: string, idx: number) => (
-                      <li key={idx} className="text-gray-800 pl-2">{trend}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-700">{model.currentMarketTrends || 'Not available'}</p>
-                )}
-              </CardContent>
-            </Card>
+              <Card className="md:col-span-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    Market Trends
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(insight["Industry Trends"]) ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {insight["Industry Trends"].map((trend: string, idx: number) => (
+                        <li key={idx} className="text-gray-800 pl-2">{trend}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-700">{model.currentMarketTrends || 'Not available'}</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </section>
 
           {/* Disclaimer */}

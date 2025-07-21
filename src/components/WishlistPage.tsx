@@ -127,8 +127,8 @@ const DraggableCollege: React.FC<{
   return (
     <tr
       ref={ref}
-      className={`border-b ${isDragging ? 'opacity-50 bg-gray-100' : 'opacity-100 hover:bg-blue-50/30'} transition-colors`}
-      style={{ cursor: 'move' }}
+      className={`border-b ${isDragging ? 'opacity-50 bg-gray-100' : 'opacity-100 hover:bg-blue-50/30'} transition-colors shadow-sm rounded-xl`}
+      style={{ cursor: 'move', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.06)', padding: '0.5rem 0.5rem', background: '#fff' }}
     >
       {/* Priority Number */}
       <td className="py-4 px-2 text-center">
@@ -150,10 +150,18 @@ const DraggableCollege: React.FC<{
           <MapPin className="h-4 w-4 mr-1.5 text-green-500" />
           <span>{college.district}</span>
         </div>
+        {/* Notes preview/edit inside main cell */}
+        <div className="mt-6">
+          <NotesRow
+            college={college}
+            userId={userId}
+            refreshWishlist={refreshWishlist}
+          />
+        </div>
       </td>
 
       {/* Cutoff Marks */}
-      <td className="py-4 px-4">
+      <td className="py-4 px-4 align-top">
         {college.cutoff_mark_2024 && (
           <div className="flex items-center">
             <TrendingUp className="h-4 w-4 mr-1.5 text-green-600" />
@@ -173,7 +181,7 @@ const DraggableCollege: React.FC<{
       </td>
 
       {/* Ranking */}
-      <td className="py-4 px-4 text-center">
+      <td className="py-4 px-4 text-center align-top">
         {college.ranking && college.ranking !== 'N/A' ? (
           <span className="inline-flex items-center bg-purple-100/70 text-purple-800 px-3 py-1 rounded-full text-sm">
             <Star className="h-4 w-4 mr-1" />
@@ -184,67 +192,8 @@ const DraggableCollege: React.FC<{
         )}
       </td>
 
-      {/* Notes Section */}
-      <td className="py-4 px-4">
-        {editingNotesFor === String(college.id) ? (
-          <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-200">
-            <textarea
-              value={currentNotes}
-              onChange={(e) => setCurrentNotes(e.target.value)}
-              className="w-full p-2 border border-blue-300/50 rounded text-sm bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              rows={3}
-              placeholder="Add your notes about this college..."
-            />
-            <div className="flex gap-2 mt-2 justify-end">
-              <button
-                onClick={cancelEditing}
-                className="px-3 py-1 bg-gray-200 rounded-md text-sm flex items-center hover:bg-gray-300 transition-colors"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </button>
-              <button
-                onClick={saveNotes}
-                disabled={isSaving}
-                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className={`p-3 rounded-lg ${college.notes ? 'bg-yellow-50/60 border border-yellow-200' : 'bg-gray-50/60 border border-gray-200'}`}>
-            <div className="flex items-start">
-              <ClipboardList className={`h-5 w-5 mr-2 mt-0.5 flex-shrink-0 ${college.notes ? 'text-yellow-500' : 'text-gray-400'}`} />
-              <div className="flex-1">
-                <div className="text-sm whitespace-pre-wrap text-gray-700">
-                  {college.notes || 'No notes added'}
-                </div>
-                <button
-                  onClick={startEditing}
-                  className="mt-2 text-blue-600 hover:text-blue-800 text-xs flex items-center transition-colors"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  {college.notes ? "Edit Notes" : "Add Notes"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </td>
-
       {/* Actions */}
-      <td className="py-4 px-4">
+      <td className="py-4 px-4 align-top">
         <div className="flex items-center justify-center space-x-1">
           <button
             onClick={() => moveCollegeUp(index)}
@@ -358,14 +307,67 @@ const WishlistPage: React.FC<WishlistPageProps> = ({
     if (!table) return;
     const pdf = new jsPDF('p', 'pt', 'a4');
     const scale = 2;
+    // Personalization: get user info
+    let userName = '';
+    let userEmail = '';
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      userName = userData.name || '';
+      userEmail = userData.email || '';
+    } catch {}
+    // --- Enhanced UI (plain text, no emojis) ---
+    // Header bar
+    pdf.setFillColor(37, 99, 235); // Tailwind blue-600
+    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 50, 'F');
+    pdf.setFontSize(22);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Tnea College Predictor', 40, 35);
+    let y = 70;
+    // Greeting
+    pdf.setFontSize(18);
+    pdf.setTextColor(37, 99, 235); // blue-600
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Hi${userName ? ' ' + userName : ''},`, 40, y);
+    y += 28;
+    // Email in gray box (plain text)
+    if (userEmail) {
+      pdf.setFillColor(243, 244, 246); // Tailwind gray-100
+      pdf.roundedRect(35, y - 18, 320, 24, 6, 6, 'F');
+      pdf.setFontSize(12);
+      pdf.setTextColor(55, 65, 81); // gray-700
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Email: ${userEmail}`, 45, y);
+      y += 30;
+    }
+    // Divider line
+    pdf.setDrawColor(203, 213, 225); // gray-300
+    pdf.setLineWidth(1);
+    pdf.line(40, y, pdf.internal.pageSize.getWidth() - 40, y);
+    y += 18;
+    // Friendly intro message
+    pdf.setFontSize(13);
+    pdf.setTextColor(55, 65, 81); // gray-700
+    pdf.setFont('helvetica', 'italic');
+    pdf.text('These are the courses and colleges you selected in your wishlist:', 40, y);
+    y += 22;
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(107, 114, 128); // gray-500
+    pdf.text('Keep this PDF handy for your TNEA counseling or future reference. Good luck!', 40, y);
+    y += 30;
+    // Render the table below the intro
     const canvas = await html2canvas(table, { scale });
     const imgData = canvas.toDataURL('image/png');
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
     const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pageWidth - 40;
+    const pdfWidth = pageWidth - 60;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 20, 20, pdfWidth, pdfHeight);
+    // Draw border for table area
+    pdf.setDrawColor(203, 213, 225); // gray-300
+    pdf.setLineWidth(2);
+    pdf.roundedRect(30, y - 10, pdfWidth + 20, pdfHeight + 20, 10, 10, 'S');
+    pdf.addImage(imgData, 'PNG', 40, y, pdfWidth, pdfHeight);
     pdf.save('wishlist.pdf');
   };
 
@@ -431,9 +433,6 @@ const WishlistPage: React.FC<WishlistPageProps> = ({
                 <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">
                   NIRF Rank
                 </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
-                  Notes
-                </th>
                 <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">
                   Actions
                 </th>
@@ -492,5 +491,67 @@ const WishlistPage: React.FC<WishlistPageProps> = ({
     </div>
   );
 };
+
+function NotesRow({ college, userId, refreshWishlist }: { college: SmartSearchResult, userId: string, refreshWishlist: () => Promise<void> }) {
+  const [editing, setEditing] = React.useState(false);
+  const [currentNotes, setCurrentNotes] = React.useState(college.notes || "");
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const startEditing = () => {
+    setEditing(true);
+    setCurrentNotes(college.notes || "");
+  };
+  const cancelEditing = () => setEditing(false);
+  const saveNotes = async () => {
+    if (!userId) return;
+    setIsSaving(true);
+    try {
+      await firestoreService.saveNotes(userId, String(college.id), currentNotes);
+      await refreshWishlist();
+      setEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-start p-3 rounded-lg bg-gray-50 border border-blue-200 shadow-sm" style={{ width: '80%', minWidth: '260px' }}>
+        <ClipboardList className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+        <div className="flex-1 text-left">
+          <textarea
+            value={currentNotes}
+            onChange={e => setCurrentNotes(e.target.value)}
+            className="w-full p-2 border border-blue-400 rounded text-sm bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-500 shadow break-all"
+            rows={4}
+            placeholder="Add your notes about this college..."
+            style={{ resize: 'vertical', minWidth: '180px' }}
+          />
+          <div className="flex gap-2 mt-2 justify-end">
+            <button onClick={cancelEditing} className="px-3 py-1 bg-gray-200 rounded-md text-sm flex items-center hover:bg-gray-300 transition-colors">
+              <X className="h-4 w-4 mr-1" />Cancel
+            </button>
+            <button onClick={saveNotes} disabled={isSaving} className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center hover:bg-blue-700 transition-colors disabled:opacity-50">
+              {isSaving ? (<><Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...</>) : (<><Save className="h-4 w-4 mr-1" />Save</>)}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start p-3 rounded-lg bg-gray-50 border border-gray-200 shadow-sm" style={{ width: '80%', minWidth: '260px' }}>
+      <ClipboardList className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+      <div className="flex-1 text-left">
+        <div className="text-sm text-gray-700 overflow-hidden whitespace-pre-line break-all" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {college.notes || 'No notes added'}
+        </div>
+        <button onClick={startEditing} className="mt-2 text-blue-600 hover:text-blue-800 text-xs flex items-center transition-colors">
+          <Edit className="h-3 w-3 mr-1" />{college.notes ? 'Edit Notes' : 'Add Notes'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default WishlistPage;

@@ -45,7 +45,7 @@
     });
 
     const [activeSection, setActiveSection] = useState('home');
-    const [searchResults, setSearchResults] = useState<SmartSearchResult[]>([]);
+    const [searchResults, setSearchResults] = useState<{ selectedDistricts: SmartSearchResult[], otherDistricts: SmartSearchResult[] }>({ selectedDistricts: [], otherDistricts: [] });
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [filters, setFilters] = useState<SearchFilters>({
@@ -179,7 +179,7 @@
 
     const getWishlistItems = (): SmartSearchResult[] => {
       const wishlistIds = new Set(wishlist.map(item => String(item.id)));
-      return searchResults.filter(college => wishlistIds.has(String(college.id)));
+      return searchResults.selectedDistricts.concat(searchResults.otherDistricts).filter(college => wishlistIds.has(String(college.id)));
     };
 
     const handleStartSearch = () => {
@@ -214,64 +214,48 @@
           const num = parseFloat(value);
           return isNaN(num) ? 0 : num;
         };
-    
+
         const calculateProximityData = (records: CollegeData[], locationPriority: 'Selected Districts' | 'Other Districts') => {
           return records.map(record => {
             const cutoff2023 = parseCutoffValue(record.cutoff_mark_2023);
             const cutoff2024 = parseCutoffValue(record.cutoff_mark_2024);
             const recordCutoff = cutoff2024 || cutoff2023;
             const cutoffDifference = Math.abs(recordCutoff - userCutoff);
-            
-            let proximityScore = 0;
-            if (recordCutoff > 0) {
-              proximityScore = userCutoff >= recordCutoff
-                ? 100 - ((userCutoff - recordCutoff) * 2)
-                : Math.max(0, 70 - ((recordCutoff - userCutoff) * 5));
-            }
-    
-            let admissionProbability = 0;
-            let matchType: 'Perfect Match' | 'Very Close' | 'Good Option' | 'Consider This';
-            
+
+            // --- Updated Admission Chance Logic ---
+            let admissionProbability: number | string;
             if (recordCutoff === 0) {
-              matchType = 'Consider This';
-              admissionProbability = 50;
+              admissionProbability = 'Low';
             } else if (userCutoff >= recordCutoff) {
-              if (userCutoff - recordCutoff <= 2) {
-                matchType = 'Perfect Match';
-                admissionProbability = 99;
-              } else if (userCutoff - recordCutoff <= 5) {
-                matchType = 'Very Close';
-                admissionProbability = 95;
-              } else if (userCutoff - recordCutoff <= 10) {
-                matchType = 'Good Option';
-                admissionProbability = 85;
-              } else {
-                matchType = 'Good Option';
-                admissionProbability = 80;
-              }
+              admissionProbability = 100;
+            } else if (userCutoff >= recordCutoff - 5) {
+              admissionProbability = 90;
+            } else if (userCutoff >= recordCutoff - 10) {
+              admissionProbability = 80;
+            } else if (userCutoff >= recordCutoff - 15) {
+              admissionProbability = 70;
             } else {
-              const difference = recordCutoff - userCutoff;
-              if (difference <= 2) {
-                matchType = 'Very Close';
-                admissionProbability = 75;
-              } else if (difference <= 5) {
-                matchType = 'Good Option';
-                admissionProbability = 60;
-              } else if (difference <= 10) {
-                matchType = 'Consider This';
-                admissionProbability = 40;
-              } else {
-                matchType = 'Consider This';
-                admissionProbability = Math.max(10, 30 - difference);
-              }
+              admissionProbability = 'Low';
             }
-    
+
+            let proximityScore = typeof admissionProbability === 'number' ? admissionProbability : 0;
+
+            let matchType: 'Perfect Match' | 'Very Close' | 'Good Option' | 'Consider This';
+            if (admissionProbability === 100) {
+              matchType = 'Perfect Match';
+            } else if (admissionProbability === 90) {
+              matchType = 'Very Close';
+            } else if (admissionProbability === 80) {
+              matchType = 'Good Option';
+            } else {
+              matchType = 'Consider This';
+            }
+
             return {
               ...record,
               cutoffDifference,
               proximityScore,
               matchType,
-              locationPriority,
               admissionProbability,
               cutoff_mark_2023: record.cutoff_mark_2023,
               cutoff_mark_2024: record.cutoff_mark_2024,
@@ -281,11 +265,11 @@
             } as SmartSearchResult;
           });
         };
-    
+
         const tableName = 'college_records';
         let allResults: SmartSearchResult[] = [];
-    
-        // Case 1: Specific courses selected
+
+        // Fetch all colleges for the selected course and category (not just selected districts)
         if (filters.courses?.length > 0) {
           for (const course of filters.courses) {
             let query = supabase
@@ -293,86 +277,84 @@
               .select('*')
               .eq('branch_name', course)
               .eq('category', filters.category);
-    
-            if (filters.locations?.length > 0) {
-              query = query.in('district', filters.locations);
-            }
-    
+
+            // Do NOT filter by district here
             const { data: courseData, error: courseError } = await query;
-    
+
             if (courseError) throw courseError;
             if (!courseData?.length) continue;
-    
+
             const results = calculateProximityData(
               courseData,
-              filters.locations?.length > 0 ? 'Selected Districts' : 'Other Districts'
+              undefined // We'll assign locationPriority below
             );
             allResults = [...allResults, ...results];
           }
-        } 
-        // Case 2: No courses selected, but districts selected
-        else if (filters.locations?.length > 0) {
-          let query = supabase
-            .from(tableName)
-            .select('*')
-            .eq('category', filters.category)
-            .in('district', filters.locations);
-    
-          const { data: districtData, error: districtError } = await query;
-          if (districtError) throw districtError;
-    
-          if (districtData?.length) {
-            const results = calculateProximityData(districtData, 'Selected Districts');
-            allResults = [...results];
-          }
-        } 
-        // Case 3: Neither courses nor districts selected
-        else {
+        } else if (filters.locations?.length > 0) {
+          // If only districts selected, fetch all for category
           let query = supabase
             .from(tableName)
             .select('*')
             .eq('category', filters.category);
-    
+
+          const { data: districtData, error: districtError } = await query;
+          if (districtError) throw districtError;
+
+          if (districtData?.length) {
+            const results = calculateProximityData(districtData, undefined);
+            allResults = [...results];
+          }
+        } else {
+          // Neither courses nor districts selected
+          let query = supabase
+            .from(tableName)
+            .select('*')
+            .eq('category', filters.category);
+
           const { data: allData, error: allError } = await query;
           if (allError) throw allError;
-    
+
           if (allData?.length) {
-            const results = calculateProximityData(allData, 'Other Districts');
+            const results = calculateProximityData(allData, undefined);
             allResults = [...results];
           }
         }
-    
-        // Final sorting
-        const finalResults = allResults.sort((a, b) => {
-          if (a.locationPriority !== b.locationPriority) {
-            return a.locationPriority === 'Selected Districts' ? -1 : 1;
-          }
-          
-          const matchTypePriority = {
-            'Perfect Match': 0,
-            'Very Close': 1,
-            'Good Option': 2,
-            'Consider This': 3,
-          };
-          
+
+        // Group results into Selected Districts and Other Districts
+        let selectedDistricts: SmartSearchResult[] = [];
+        let otherDistricts: SmartSearchResult[] = [];
+        if (filters.locations && filters.locations.length > 0) {
+          selectedDistricts = allResults.filter(r => filters.locations.includes(r.district));
+          otherDistricts = allResults.filter(r => !filters.locations.includes(r.district));
+        } else {
+          selectedDistricts = allResults;
+          otherDistricts = [];
+        }
+
+        // Sort each group
+        const matchTypePriority = {
+          'Perfect Match': 0,
+          'Very Close': 1,
+          'Good Option': 2,
+          'Consider This': 3,
+        };
+        const sortFn = (a: SmartSearchResult, b: SmartSearchResult) => {
           const aPriority = matchTypePriority[a.matchType];
           const bPriority = matchTypePriority[b.matchType];
-          
           if (aPriority !== bPriority) return aPriority - bPriority;
           if (a.admissionProbability !== b.admissionProbability) {
             return b.admissionProbability - a.admissionProbability;
           }
-          
           return a.cutoffDifference - b.cutoffDifference;
-        });
-    
-        console.log(`✅ Found ${finalResults.length} results`);
-        setSearchResults(finalResults);
-    
+        };
+        selectedDistricts.sort(sortFn);
+        otherDistricts.sort(sortFn);
+
+        setSearchResults({ selectedDistricts, otherDistricts });
       } catch (error) {
         console.error('Search error:', error);
         alert(`Search failed: ${error instanceof Error ? error.message : error}`);
-        setSearchResults([]);
+        setSearchResults({ selectedDistricts: [], otherDistricts: [] });
       } finally {
         setIsSearching(false);
       }
@@ -384,17 +366,17 @@
         locations: [],
         courses: []
       });
-      setSearchResults([]);
+      setSearchResults({ selectedDistricts: [], otherDistricts: [] });
       setHasSearched(false);
     };
 
     useEffect(() => {
       const titles = {
-        home: 'CollegeFinder - Find Your Perfect Engineering College in Tamil Nadu',
-        search: 'Search Engineering Colleges - CollegeFinder',
-        debug: 'Debug Filters - CollegeFinder',
-        analytics: 'Engineering Education Analytics - CollegeFinder',
-        manage: 'Database Management - CollegeFinder'
+        home: 'Tnea College Predictor - Find Your Perfect Engineering College in Tamil Nadu',
+        search: 'Search Engineering Colleges - Tnea College Predictor',
+        debug: 'Debug Filters - Tnea College Predictor',
+        analytics: 'Engineering Education Analytics - Tnea College Predictor',
+        manage: 'Database Management - Tnea College Predictor'
       };
       document.title = titles[activeSection as keyof typeof titles] || titles.home;
     }, [activeSection]);
@@ -440,17 +422,17 @@
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-8">
                   <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                    Find Your Perfect Engineering College
+                    Tnea College Predictor
                   </h1>
                   <p className="text-xl text-gray-600">
-                    Location-prioritized search with smart cutoff proximity
+                    Find your perfect engineering college in Tamil Nadu with location-prioritized search and smart cutoff proximity.
                   </p>
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg mt-4">
                     <p className="text-sm text-gray-700">
-                      🎯 <strong>New Algorithm:</strong> Course → Category → Location Priority → Cutoff Proximity
+                      <strong>New Algorithm:</strong> Course → Category → Location Priority → Cutoff Proximity
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
-                      📍 Selected district colleges appear first, then other districts (both sorted by cutoff closeness)
+                      Selected district colleges appear first, then other districts (both sorted by cutoff closeness)
                     </p>
                   </div>
                 </div>
@@ -462,14 +444,13 @@
                   onReset={handleReset}
                 />
                 
-                {hasSearched && (
-                  <SearchResults 
-                    results={searchResults} 
-                    isLoading={isSearching}
-                    wishlist={wishlist}
-                    onToggleWishlist={toggleWishlist}
-                  />
-                )}
+                <SearchResults 
+                  selectedDistricts={searchResults.selectedDistricts}
+                  otherDistricts={searchResults.otherDistricts}
+                  isLoading={isSearching}
+                  wishlist={wishlist}
+                  onToggleWishlist={toggleWishlist}
+                />
               </div>
             </div>
           );
@@ -501,10 +482,10 @@
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-12">
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                      Every student has a place—let’s discover yours!
+                      Welcome to Tnea College Predictor
                     </h2>
                     <p className="text-xl text-gray-600">
-                      Don’t worry if you feel average. Many students do! We’ll help you find the right fit. No need to be a topper—everyone has great options!
+                      Discover your best-fit engineering college in Tamil Nadu. We’re here to help guide you every step of the way!
                     </p>
                   </div>
                   <div className="text-center">
@@ -512,7 +493,7 @@
                       onClick={handleStartSearch}
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300"
                     >
-                      See Where You Can Get In
+                      Start Your College Prediction
                     </button>
                   </div>
                 </div>
